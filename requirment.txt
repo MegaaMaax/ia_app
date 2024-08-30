@@ -1,6 +1,0 @@
-sudo apt install curl
-curl -fsSL https://ollama.com/install.sh | sh
-
-pip install Flask
-pip install gradio
-pip install ollama
