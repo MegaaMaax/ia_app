@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+</head>
+<body>
+    <h1>AI Chatbot</h1>
+    <label for="question">Question:</label>
+    <input type="text" id="question" name="question">
+    <label for="model">Model:</label>
+    <select id="model" name="model">
+        <script>
+            fetch('/models')
+                .then(response => response.json())
+                .then(data => {
+                    const modelSelect = document.getElementById('model');
+                    data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model;
+                        option.text = model;
+                        modelSelect.add(option);
+                    });
+                });
+        </script>
+    </select>
+    <button onclick="askQuestion()">Ask</button>
+    <p id="answer"></p>
+
+    <script>
+        function askQuestion() {
+            const question = document.getElementById('question').value;
+            const model = document.getElementById('model').value;
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question, model })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('answer').innerText = data.answer;
+            });
+        }
+    </script>
+</body>
+</html>

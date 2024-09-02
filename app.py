@@ -1,13 +1,12 @@
-from flask import Flask, send_file
-import gradio as gr
 import ollama
-
-app = Flask(__name__)
+import sys
+import gradio as gr
 
 # Obtenir la liste des modèles
 models_list = ollama.list()
 model_names = [model['name'].split(':')[0] for model in models_list['models']]
 
+# Fonction pour poser une question à l'IA
 def ask_question(question, model):
     stream = ollama.chat(
         model=model,
@@ -19,6 +18,7 @@ def ask_question(question, model):
         result += chunk['message']['content']
     return result
 
+# Créer l'interface utilisateur
 iface = gr.Interface(
     fn=ask_question,
     inputs=[
@@ -26,7 +26,7 @@ iface = gr.Interface(
         gr.Dropdown(
             label="Model",
             choices=model_names,
-            value="dolphin-mistral"
+            value="tinyllama"
         ),
     ],
     outputs="text",
@@ -34,9 +34,5 @@ iface = gr.Interface(
     description="Enter a question to get an answer from the AI chatbot."
 )
 
-@app.route('/')
-def index():
-    return send_file(iface.launch())
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+# Launch the app
+iface.launch(server_name="0.0.0.0", server_port=8080)
