@@ -1,7 +1,8 @@
 from bottle import route, run
 
-@route('/hello')
-def hello():
-    return "Hello World!"
+@route('/')
+def index():
+    return 'Hello World!'
 
-run(host='localhost', port=8080, debug=True)
+# Écouter sur toutes les interfaces réseau, sur le port 8080
+run(host='0.0.0.0', port=8080)
