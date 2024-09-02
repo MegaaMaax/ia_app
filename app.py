@@ -8,15 +8,16 @@ model_names = [model['name'].split(':')[0] for model in models_list['models']]
 
 # Fonction pour poser une question à l'IA
 def ask_question(question, model):
+    messages = [{'role': 'user', 'content': question}]
     stream = ollama.chat(
         model=model,
-        messages=[{'role': 'user', 'content': question}],
+        messages=messages,
         stream=True,
     )
-    result = ""
+    response = ""
     for chunk in stream:
-        result += chunk['message']['content']
-    return result
+        response += chunk['message']['content']
+        yield response
 
 # Créer l'interface utilisateur
 iface = gr.Interface(
@@ -31,7 +32,8 @@ iface = gr.Interface(
     ],
     outputs="text",
     title="AI Chatbot",
-    description="Enter a question to get an answer from the AI chatbot."
+    description="Enter a question to get an answer from the AI chatbot.",
+    live=False  # Désactiver le mode live
 )
 
 # Launch the app
