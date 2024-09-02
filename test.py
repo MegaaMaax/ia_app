@@ -26,7 +26,7 @@ iface = gr.Interface(
         gr.Dropdown(
             label="Model",
             choices=model_names,
-            value="dolphin-mistral"
+            value=model_names[0]
         ),
     ],
     outputs="text",
@@ -35,4 +35,4 @@ iface = gr.Interface(
 )
 
 # Launch the app
-iface.launch(server_name="0.0.0.0", server_port=7860)
+iface.launch(server_name="0.0.0.0", server_port=8080)
