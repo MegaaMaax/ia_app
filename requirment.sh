@@ -53,3 +53,12 @@ then
 else
     echo "ollama est déjà installé."
 fi
+
+# Installer bottle si nécessaire
+if ! pip show bottle &> /dev/null
+then
+    echo "bottle n'est pas installé. Installation de bottle..."
+    pip install bottle
+else
+    echo "bottle est déjà installé."
+fi
