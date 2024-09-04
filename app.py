@@ -1,5 +1,6 @@
 import ollama
 import sys
+import fitz
 import gradio as gr
 
 # Obtenir la liste des modèles disponibles
@@ -11,11 +12,25 @@ def update_name_list():
 model_names = update_name_list()
 conversation_history = []
 
+# Fonction pour extraire le texte d'un PDF
+def extract_text_from_pdf(pdf_file):
+    doc = fitz.open(pdf_file.name)
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    return text
+
 # Fonction pour poser une question à l'IA
-def ask_question(question, model):
+def ask_question(question, model, file):
     global conversation_history
 
+    if file is not None:
+        pdf_text = extract_text_from_pdf(file)
+        conversation_history.append({'role': 'system', 'content': pdf_text})
+        print(pdf_text)
+
     conversation_history.append({'role': 'user', 'content': question})
+    print("The model selected is " + model)
     stream = ollama.chat(
         model=model,
         messages=conversation_history,
@@ -37,13 +52,15 @@ def create_custom_model(base_name, new_name, parameter):
     return update_name_list()
 
 # Créer l'interface utilisateur
-with gr.Blocks() as iface:
+with gr.Blocks(theme='gradio/soft') as iface:
     gr.Markdown("# AI Chatbot")
-    
+
     with gr.Row():
         with gr.Column():
             question = gr.Textbox(label="Question")
             model = gr.Dropdown(label="Model", choices=model_names, value="tinyllama")
+            file = gr.File(label="Upload PDF file", file_types=["pdf"])
+            submit_button = gr.Button("Submit")
             
             with gr.Accordion("Customize Model", open=False):
                 base_model_name = gr.Dropdown(label="Base Model", choices=model_names, value="tinyllama")
@@ -51,7 +68,6 @@ with gr.Blocks() as iface:
                 model_parameter = gr.Textbox(label="Model Parameter")
                 create_button = gr.Button("Create Model")
             
-            submit_button = gr.Button("Submit")
         
         with gr.Column():
             output = gr.Textbox(label="Response")
@@ -68,9 +84,9 @@ with gr.Blocks() as iface:
 
     submit_button.click(
         fn=ask_question,
-        inputs=[question, model],
+        inputs=[question, model, file],
         outputs=output
     )
 
 # Launch the app
-iface.launch(server_name="0.0.0.0", server_port=8080)
+iface.launch(share=True)

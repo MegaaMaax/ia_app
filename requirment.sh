@@ -62,3 +62,11 @@ then
 else
     echo "bottle est déjà installé."
 fi
+
+# Installer PyMuPDF si nécessaire
+if ! pip show PyMuPDF &> /dev/null
+then
+    echo "PyMuPDF n'est pas installé. Installation de PyMuPDF..."
+    pip install pymupdf
+else
+    echo "PyMuPDF est
