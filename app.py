@@ -89,4 +89,4 @@ with gr.Blocks(theme='gradio/soft') as iface:
     )
 
 # Launch the app
-iface.launch(share=True)
+iface.launch(server_name="0.0.0.0", server_port=8080)
