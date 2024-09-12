@@ -69,4 +69,5 @@ then
     echo "PyMuPDF n'est pas installé. Installation de PyMuPDF..."
     pip install pymupdf
 else
-    echo "PyMuPDF est
+    echo "PyMuPDF est déjà installé."
+fi
