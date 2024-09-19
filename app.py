@@ -1,15 +1,22 @@
 import ollama
-import sys
+import os
 import fitz
 import gradio as gr
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_chroma import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from groq import Groq
+import constants
 
 vector_store = Chroma(
     collection_name="rag_db",
     embedding_function=OllamaEmbeddings(model='nomic-embed-text'),
     persist_directory="db_dir",
+)
+
+client = Groq(
+    # This is the default and can be omitted
+    api_key=constants.GROQ_API_KEY,
 )
 
 def upload_database(file):
@@ -28,6 +35,17 @@ def update_name_list():
     model_names = [model['name'].split(':')[0] for model in models_list['models']]
     model_names = [name for name in model_names if name != 'nomic-embed-text']
     return model_names
+
+def get_groq_models():
+    models_list = client.models.list()
+    model_names = [model.id for model in models_list.data]
+    return model_names
+
+def update_model_list(check_groq):
+    if check_groq:
+        return get_groq_models()
+    else:
+        return update_name_list()
 
 model_names = update_name_list()
 conversation_history = []
@@ -49,20 +67,6 @@ def load_and_retrieve_docs_from_pdf(pdf_file):
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
-# Fonction qui définit la chaîne RAG
-def rag_chain_from_pdf(pdf_file, question, model):
-    print("debut rag chain")
-    retriever = load_and_retrieve_docs_from_pdf(pdf_file)
-    retrieved_docs = retriever.invoke(question)
-    formatted_context = format_docs(retrieved_docs)
-    formatted_prompt = f"Question: {question}\n\nContext: {formatted_context}"
-    print("embedding crée")
-    stream = ollama.chat(model=model, messages=[{'role': 'user', 'content': formatted_prompt}], stream=True)
-    response = ""
-    for chunk in stream:
-        response += chunk['message']['content']
-        yield response
-
 # Fonction pour extraire le texte d'un PDF
 def extract_text_from_pdf(pdf_file):
     doc = fitz.open(pdf_file.name)
@@ -72,8 +76,11 @@ def extract_text_from_pdf(pdf_file):
     return text
 
 # Fonction pour poser une question à l'IA
-def ask_question(question, model, file, check_db):
+def ask_question(question, model, file, check_db, check_groq):
     global conversation_history
+
+    # Mettre à jour la liste des modèles
+    model_names = update_model_list(check_groq)
 
     if check_db:
         print("Début search in db")
@@ -94,11 +101,29 @@ def ask_question(question, model, file, check_db):
         formatted_prompt += f"\n\nContext from PDF: {formatted_context}"
         print("Embedding créé")
     
-    stream = ollama.chat(model=model, messages=[{'role': 'user', 'content': formatted_prompt}], stream=True)
-    response = ""
-    for chunk in stream:
-        response += chunk['message']['content']
+    if check_groq:
+        print("Groq activated")
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Tu es un assistant, mais quand tu ne connais pas une réponse tu dois répondre: Je ne sais pas. Sans oublier de répondre en français"
+                },
+                {
+                    "role": "user",
+                    "content": formatted_prompt,
+                }
+            ],
+            model=model,
+        )
+        response = chat_completion.choices[0].message.content
         yield response
+    else:
+        stream = ollama.chat(model=model, messages=[{'role': 'user', 'content': formatted_prompt}], stream=True)
+        response = ""
+        for chunk in stream:
+            response += chunk['message']['content']
+            yield response
 
     conversation_history.append({'role': 'user', 'content': question})
     conversation_history.append({'role': 'assistant', 'content': response})
@@ -126,16 +151,26 @@ with gr.Blocks(theme='gradio/soft') as iface:
                 question = gr.Textbox(label="Question")
                 model = gr.Dropdown(label="Model", choices=model_names, value="tinyllama")
                 check_db = gr.Checkbox(label="Use Database")
+                check_groq = gr.Checkbox(label="Use Groq")
                 file = gr.File(label="Upload PDF file", file_types=["pdf"])
                 submit_button = gr.Button("Submit")
                 
             with gr.Column():
                 output = gr.Textbox(label="Response")
 
+        def update_model_dropdown(check_groq):
+            model_names = update_model_list(check_groq)
+            return gr.update(choices=model_names)
+
+        check_groq.change(
+            fn=update_model_dropdown,
+            inputs=[check_groq],
+            outputs=[model]
+        )
 
         submit_button.click(
             fn=ask_question,
-            inputs=[question, model, file, check_db],
+            inputs=[question, model, file, check_db, check_groq],
             outputs=output
         )
 
