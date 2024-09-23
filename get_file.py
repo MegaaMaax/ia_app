@@ -17,5 +17,5 @@ def request_file(server_ip, port, filename):
 if __name__ == "__main__":
     server_ip = '192.168.56.1'  # Remplacez par l'IP du serveur
     port = 12345
-    filename = "PyMuPDF-1.24.10-cp312-none-musllinux_1_2_x86_64.whl"
+    filename = "PyMuPDF-1.24.10-cp312-none-manylinux2014_x86_64.whl"
     request_file(server_ip, port, filename)
