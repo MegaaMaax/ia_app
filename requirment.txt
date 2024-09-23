@@ -1,0 +1,7 @@
+ollama
+PyMuPDF
+gradio
+langchain-community
+langchain-chroma
+groq
+certifi
