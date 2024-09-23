@@ -15,7 +15,7 @@ def request_file(server_ip, port, filename):
     client_socket.close()
 
 if __name__ == "__main__":
-    server_ip = '192.168.1.2'  # Remplacez par l'IP du serveur
+    server_ip = '192.168.56.1'  # Remplacez par l'IP du serveur
     port = 12345
-    filename = input("Enter the filename to request: ")
+    filename = "PyMuPDF-1.24.10-cp312-none-musllinux_1_2_x86_64.whl"
     request_file(server_ip, port, filename)
