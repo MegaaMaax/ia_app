@@ -15,7 +15,6 @@ vector_store = Chroma(
 )
 
 client = Groq(
-    # This is the default and can be omitted
     api_key=constants.GROQ_API_KEY,
 )
 
@@ -202,4 +201,6 @@ with gr.Blocks(theme='gradio/soft') as iface:
         )
 
 # Lancer l'application
-iface.launch(server_name="0.0.0.0", server_port=8080)
+iface.launch()
+
+#server_name="0.0.0.0", server_port=8080
