@@ -3,18 +3,16 @@ import ollama
 from modules.models import update_model_list, create_custom_model, get_client
 from modules.database import upload_database, get_vector_store
 from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs
+from gradio import ChatMessage
 
 model_names = update_model_list(False)
-conversation_history = []
 vector_store = get_vector_store()
 
 def handle_create_model(base_name, new_name, parameter):
     new_model_names = create_custom_model(base_name, new_name, parameter)
     return gr.update(choices=new_model_names), gr.update(choices=new_model_names)
 
-def ask_question(question, model, file, check_db, check_groq):
-    global conversation_history
-
+def ask_question(history, question, model, file, check_db, check_groq):
     model_names = update_model_list(check_groq)
     client = get_client()
 
@@ -33,6 +31,12 @@ def ask_question(question, model, file, check_db, check_groq):
         formatted_context = format_docs(retrieved_docs)
         formatted_prompt += f"\n\nContext from PDF: {formatted_context}"
     
+    # Ajouter la question de l'utilisateur à l'historique
+    history.append(ChatMessage(role="user", content=question))
+    # Ajouter un message vide pour l'assistant à l'historique
+    history.append(ChatMessage(role="assistant", content=""))
+    yield history
+
     if check_groq:
         response = ""
         chat_completion = client.chat.completions.create(
@@ -47,21 +51,20 @@ def ask_question(question, model, file, check_db, check_groq):
                 }
             ],
             model=model,
-            stream = True
+            stream=True
         )
         for chunk in chat_completion:
-            if chunk.choices[0].delta.content != None:
+            if chunk.choices[0].delta.content is not None:
                 response += chunk.choices[0].delta.content
-                yield response
+                history[-1].content = response  # Mettre à jour le dernier message de l'assistant
+                yield history
     else:
         stream = ollama.chat(model=model, messages=[{'role': 'user', 'content': formatted_prompt}], stream=True)
         response = ""
         for chunk in stream:
             response += chunk['message']['content']
-            yield response
-
-    conversation_history.append({'role': 'user', 'content': question})
-    conversation_history.append({'role': 'assistant', 'content': response})
+            history[-1].content = response  # Mettre à jour le dernier message de l'assistant
+            yield history
 
 def create_interface():
     with gr.Blocks(theme='gradio/soft') as iface:
@@ -78,7 +81,7 @@ def create_interface():
                     submit_button = gr.Button("Submit")
                     
                 with gr.Column():
-                    output = gr.Textbox(label="Response")
+                    output = gr.Chatbot(label="Response", type="messages")
 
             def update_model_dropdown(check_groq):
                 model_names = update_model_list(check_groq)
@@ -92,7 +95,7 @@ def create_interface():
 
             submit_button.click(
                 fn=ask_question,
-                inputs=[question, model, file, check_db, check_groq],
+                inputs=[output, question, model, file, check_db, check_groq],
                 outputs=output
             )
 
