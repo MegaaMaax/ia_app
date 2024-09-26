@@ -34,6 +34,7 @@ def ask_question(question, model, file, check_db, check_groq):
         formatted_prompt += f"\n\nContext from PDF: {formatted_context}"
     
     if check_groq:
+        response = ""
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -46,9 +47,12 @@ def ask_question(question, model, file, check_db, check_groq):
                 }
             ],
             model=model,
+            stream = True
         )
-        response = chat_completion.choices[0].message.content
-        yield response
+        for chunk in chat_completion:
+            if chunk.choices[0].delta.content != None:
+                response += chunk.choices[0].delta.content
+                yield response
     else:
         stream = ollama.chat(model=model, messages=[{'role': 'user', 'content': formatted_prompt}], stream=True)
         response = ""
