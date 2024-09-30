@@ -1,21 +1,24 @@
+import os
 import gradio as gr
 import ollama
 from modules.models import update_model_list, create_custom_model, get_client
 from modules.database import upload_database, get_vector_store
 from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs
 from gradio import ChatMessage
+from mistralai import Mistral
 
-model_names = update_model_list(False)
+model_names = update_model_list(False, False)
 vector_store = get_vector_store()
 
 def handle_create_model(base_name, new_name, parameter):
     new_model_names = create_custom_model(base_name, new_name, parameter)
     return gr.update(choices=new_model_names), gr.update(choices=new_model_names)
 
-def ask_question(history, question, model, file, check_db, check_groq):
-    model_names = update_model_list(check_groq)
-    client = get_client()
-
+def ask_question(history, chat_input, model, check_db, check_groq, check_mistral):
+    model_names = update_model_list(check_groq, check_mistral)
+    file_path = chat_input["files"][0]
+    question = chat_input["text"]
+    print(f"file_path: {file_path}")
     if check_db:
         formatted_context = ""
         results = vector_store.similarity_search(query=question, k=5)
@@ -25,19 +28,20 @@ def ask_question(history, question, model, file, check_db, check_groq):
     else:
         formatted_prompt = f"Question: {question}"
 
-    if file is not None:
-        retriever = load_and_retrieve_docs_from_pdf(file)
-        retrieved_docs = retriever.invoke(question)
-        formatted_context = format_docs(retrieved_docs)
-        formatted_prompt += f"\n\nContext from PDF: {formatted_context}"
-    
-    # Ajouter la question de l'utilisateur à l'historique
+    if file_path is not None:
+        file_name, file_extension = file_path.split(".")
+        if file_extension.lower() == "pdf":
+            retriever = load_and_retrieve_docs_from_pdf(file_path)
+            retrieved_docs = retriever.invoke(question)
+            formatted_context = format_docs(retrieved_docs)
+            formatted_prompt += f"\n\nContext from PDF: {formatted_context}"
+
     history.append(ChatMessage(role="user", content=question))
-    # Ajouter un message vide pour l'assistant à l'historique
     history.append(ChatMessage(role="assistant", content=""))
     yield history
 
     if check_groq:
+        client = get_client("groq")
         response = ""
         chat_completion = client.chat.completions.create(
             messages=[
@@ -56,47 +60,65 @@ def ask_question(history, question, model, file, check_db, check_groq):
         for chunk in chat_completion:
             if chunk.choices[0].delta.content is not None:
                 response += chunk.choices[0].delta.content
-                history[-1].content = response  # Mettre à jour le dernier message de l'assistant
+                history[-1].content = response
+                yield history
+    elif check_mistral:
+        client = get_client("mistral")
+        response = ""
+        chat_completion = client.chat.complete(
+            messages=[
+                {
+                    "role": "user",
+                    "content": formatted_prompt,
+                }
+            ],
+            model=model,
+            stream=True
+        )
+        for chunk in chat_completion:
+            if chunk.choices[0].delta.content is not None:
+                response += chunk.choices[0].delta.content
+                history[-1].content = response
                 yield history
     else:
         stream = ollama.chat(model=model, messages=[{'role': 'user', 'content': formatted_prompt}], stream=True)
         response = ""
         for chunk in stream:
             response += chunk['message']['content']
-            history[-1].content = response  # Mettre à jour le dernier message de l'assistant
+            history[-1].content = response
             yield history
 
 def create_interface():
     with gr.Blocks(theme='gradio/soft') as iface:
-        gr.Markdown("# AI Chatbot")
-
         with gr.Tab("Chatbot"):
-            with gr.Row():
-                with gr.Column():
-                    question = gr.Textbox(label="Question")
-                    model = gr.Dropdown(label="Model", choices=model_names, value="tinyllama")
-                    check_db = gr.Checkbox(label="Use Database")
-                    check_groq = gr.Checkbox(label="Use Groq")
-                    file = gr.File(label="Upload PDF file", file_types=["pdf"])
-                    submit_button = gr.Button("Submit")
-                    
-                with gr.Column():
-                    output = gr.Chatbot(label="Response", type="messages")
+            output = gr.Chatbot(label="Response", type="messages")
+            chat_input = gr.MultimodalTextbox(show_label=False, placeholder="Entrée votre question ici", file_count="single")
+            model = gr.Dropdown(label="Model", choices=model_names, value="tinyllama")
+            check_db = gr.Checkbox(label="Use Database")
+            check_groq = gr.Checkbox(label="Use Groq")
+            check_mistral = gr.Checkbox(label="Use Mistral")
+            clear_button = gr.ClearButton([chat_input, output])
 
-            def update_model_dropdown(check_groq):
-                model_names = update_model_list(check_groq)
+            def update_model_name(check_groq, check_mistral):
+                model_names = update_model_list(check_groq, check_mistral)
                 return gr.update(choices=model_names)
+            
+            chat_input.submit(
+                fn=ask_question,
+                inputs=[output, chat_input, model, check_db, check_groq, check_mistral],
+                outputs=output
+            )
 
             check_groq.change(
-                fn=update_model_dropdown,
-                inputs=[check_groq],
+                fn=update_model_name,
+                inputs=[check_groq, check_mistral],
                 outputs=[model]
             )
 
-            submit_button.click(
-                fn=ask_question,
-                inputs=[output, question, model, file, check_db, check_groq],
-                outputs=output
+            check_mistral.change(
+                fn=update_model_name,
+                inputs=[check_groq, check_mistral],
+                outputs=[model]
             )
 
         with gr.Tab("Customize Model"):

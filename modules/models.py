@@ -1,11 +1,13 @@
 import ollama
 from groq import Groq
 import modules.constants as constants
+from mistralai import Mistral
 
-def get_client():
-    return Groq(
-        api_key=constants.GROQ_API_KEY,
-    )
+def get_client(str):
+    if str == 'groq':
+        return Groq(api_key=constants.GROQ_API_KEY)
+    if str == 'mistral':
+        return Mistral(api_key=constants.MISTRAL_API_KEY)
 
 def update_name_list():
     models_list = ollama.list()
@@ -13,15 +15,23 @@ def update_name_list():
     model_names = [name for name in model_names if name != 'nomic-embed-text']
     return model_names
 
-def get_groq_models():
+def get_models(str):
+    client = get_client(str)
+    models_list = client.models.list()
+    model_names = [model.id for model in models_list.data]
+    return model_names
+
+def get_mistral_models():
     client = get_client()
     models_list = client.models.list()
     model_names = [model.id for model in models_list.data]
     return model_names
 
-def update_model_list(check_groq):
+def update_model_list(check_groq, check_mistral):
     if check_groq:
-        return get_groq_models()
+        return get_models('groq')
+    if check_mistral:
+        return get_models('mistral')
     else:
         return update_name_list()
 
