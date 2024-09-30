@@ -16,9 +16,7 @@ def handle_create_model(base_name, new_name, parameter):
 
 def ask_question(history, chat_input, model, check_db, check_groq, check_mistral):
     model_names = update_model_list(check_groq, check_mistral)
-    file_path = chat_input["files"][0]
     question = chat_input["text"]
-    print(f"file_path: {file_path}")
     if check_db:
         formatted_context = ""
         results = vector_store.similarity_search(query=question, k=5)
@@ -28,14 +26,15 @@ def ask_question(history, chat_input, model, check_db, check_groq, check_mistral
     else:
         formatted_prompt = f"Question: {question}"
 
-    if file_path is not None:
-        file_name, file_extension = file_path.split(".")
-        if file_extension.lower() == "pdf":
+    if chat_input["files"] and len(chat_input["files"]) > 0:
+        file_path = chat_input["files"][0]
+        file_name, file_extension = os.path.splitext(file_path)
+        if file_extension.lower() == ".pdf":
             retriever = load_and_retrieve_docs_from_pdf(file_path)
             retrieved_docs = retriever.invoke(question)
             formatted_context = format_docs(retrieved_docs)
             formatted_prompt += f"\n\nContext from PDF: {formatted_context}"
-
+    
     history.append(ChatMessage(role="user", content=question))
     history.append(ChatMessage(role="assistant", content=""))
     yield history
