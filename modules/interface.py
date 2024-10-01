@@ -3,7 +3,7 @@ import gradio as gr
 import ollama
 from modules.models import update_model_list, create_custom_model, get_client
 from modules.database import upload_database, get_vector_store
-from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs
+from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs, encode_image_base64
 from gradio import ChatMessage
 from mistralai import Mistral
 
@@ -64,19 +64,39 @@ def ask_question(history, chat_input, model, check_db, check_groq, check_mistral
     elif check_mistral:
         client = get_client("mistral")
         response = ""
-        chat_completion = client.chat.complete(
-            messages=[
-                {
-                    "role": "user",
-                    "content": formatted_prompt,
-                }
-            ],
-            model=model,
-            stream=True
-        )
+        if "pixtral" in model and chat_input["files"] and len(chat_input["files"]) > 0:
+            list_image = encode_image_base64(chat_input["files"][0])
+            chat_completion = client.chat.stream(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": formatted_prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": f"data:image/jpeg;base64,{list_image}"
+                            }
+                        ]
+                    }
+                ],
+                model=model
+            )
+        else:
+            chat_completion = client.chat.stream(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": formatted_prompt,
+                    }
+                ],
+                model=model
+            )
         for chunk in chat_completion:
-            if chunk.choices[0].delta.content is not None:
-                response += chunk.choices[0].delta.content
+            if chunk.data.choices[0].delta.content is not None:
+                response += chunk.data.choices[0].delta.content
                 history[-1].content = response
                 yield history
     else:
