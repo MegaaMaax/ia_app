@@ -108,14 +108,15 @@ def ask_question(history, chat_input, model, check_db, check_groq, check_mistral
             yield history
 
 def create_interface():
-    with gr.Blocks(theme='gradio/soft') as iface:
+    with gr.Blocks(theme=gr.themes.Monochrome()) as iface:
         with gr.Tab("Chatbot"):
-            output = gr.Chatbot(label="Response", type="messages")
+            output = gr.Chatbot(show_label=False, type="messages")
             chat_input = gr.MultimodalTextbox(show_label=False, placeholder="Entrée votre question ici", file_count="single")
-            model = gr.Dropdown(label="Model", choices=model_names, value="tinyllama")
-            check_db = gr.Checkbox(label="Use Database")
-            check_groq = gr.Checkbox(label="Use Groq")
-            check_mistral = gr.Checkbox(label="Use Mistral")
+            with gr.Accordion(label="Paramètres avancés", open=False):
+                model = gr.Dropdown(label="Model", choices=model_names, value="tinyllama")
+                check_db = gr.Checkbox(label="Use Database")
+                check_groq = gr.Checkbox(label="Use Groq")
+                check_mistral = gr.Checkbox(label="Use Mistral")
             clear_button = gr.ClearButton([chat_input, output])
 
             def update_model_name(check_groq, check_mistral):
