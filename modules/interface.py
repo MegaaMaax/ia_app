@@ -184,7 +184,7 @@ def create_interface():
                 outputs=db_output
             )
 
-            question.change(
+            question.submit(
                 fn=sql_question,
                 inputs=[question],
                 outputs=db_output

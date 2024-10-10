@@ -6,3 +6,5 @@ langchain-chroma
 groq
 certifi
 mistralai
+langchain_groq
+mysql-connector-python
