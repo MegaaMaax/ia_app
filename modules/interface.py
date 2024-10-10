@@ -4,6 +4,7 @@ import ollama
 from modules.models import update_model_list, create_custom_model, get_client
 from modules.database import upload_database, get_vector_store
 from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs, encode_image_base64
+from modules.sql_query import sql_question
 from gradio import ChatMessage
 from mistralai import Mistral
 
@@ -165,6 +166,27 @@ def create_interface():
             submit_db_button.click(
                 fn=upload_database,
                 inputs=[db_file],
+                outputs=db_output
+            )
+
+        with gr.Tab("SQL Database"):
+            gr.Image("https://i.ibb.co/Mn3tNmS/db-schema.png", show_label=False)
+            with gr.Row():
+                with gr.Column():
+                    question = gr.Textbox(label="Question")
+                    submit_sql_button = gr.Button("Submit")
+                with gr.Column():
+                    db_output = gr.Textbox(label="Response")
+
+            submit_sql_button.click(
+                fn=sql_question,
+                inputs=[question],
+                outputs=db_output
+            )
+
+            question.change(
+                fn=sql_question,
+                inputs=[question],
                 outputs=db_output
             )
 
