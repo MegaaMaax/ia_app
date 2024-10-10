@@ -56,6 +56,10 @@ prompt_response = ChatPromptTemplate.from_template(template)
 def run_query(query):
     return db.run(query)
 
+def print_prompt_response(response):
+    print("Generated Response:", response)
+    return response
+
 full_chain = (
     RunnablePassthrough.assign(query=sql_chain).assign(
         schema=get_schema,
@@ -63,6 +67,7 @@ full_chain = (
     )
     | prompt_response
     | groq
+    | print_prompt_response
 )
 
 def sql_question(question):
