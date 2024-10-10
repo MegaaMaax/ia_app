@@ -72,4 +72,5 @@ full_chain = (
 
 def sql_question(question):
     response = full_chain.invoke({"question": question})
+    print(response.content)
     return response.content
