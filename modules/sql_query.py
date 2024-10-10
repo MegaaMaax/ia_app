@@ -33,11 +33,16 @@ def get_schema(_):
 def run_query(query):
     return db.run(query)
 
+def print_query(query):
+    print("Generated SQL Query:", query)
+    return query
+
 sql_chain = (
     RunnablePassthrough.assign(schema=get_schema)
     | prompt
     | groq.bind(stop=["\nSQL Result:"])
     | StrOutputParser()
+    | print_query
 )
 
 template = """Based on the table schema below, question, sql query, and sql response, write a natural language response:
