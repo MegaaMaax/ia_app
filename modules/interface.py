@@ -108,7 +108,7 @@ def ask_question(history, chat_input, model, check_db, check_groq, check_mistral
             yield history
 
 def create_interface():
-    with gr.Blocks(theme=gr.themes.Soft()) as iface:
+    with gr.Blocks(theme=gr.themes.Soft(font="system-ui")) as iface:
         with gr.Tab("Chatbot"):
             output = gr.Chatbot(show_label=False, type="messages")
             chat_input = gr.MultimodalTextbox(show_label=False, placeholder="Entrée votre question ici", file_count="single")
