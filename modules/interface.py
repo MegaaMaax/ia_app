@@ -156,7 +156,7 @@ def create_interface():
         with gr.Tab("Upload database"):
             with gr.Row():
                 with gr.Column():
-                    db_file = gr.File(label="Upload Database file", file_types=["pdf"])
+                    db_file = gr.File(label="Upload Database file", file_types=["file"])
                     submit_db_button = gr.Button("Submit")
 
                 with gr.Column():
