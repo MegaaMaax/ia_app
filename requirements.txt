@@ -7,4 +7,5 @@ groq
 certifi
 mistralai
 langchain_groq
+langchain-mistralai
 mysql-connector-python

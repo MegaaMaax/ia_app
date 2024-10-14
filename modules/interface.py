@@ -6,7 +6,6 @@ from modules.database import upload_database, get_vector_store
 from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs, encode_image_base64
 from modules.sql_query import sql_question
 from gradio import ChatMessage
-from mistralai import Mistral
 
 model_names = update_model_list(False, False)
 vector_store = get_vector_store()
@@ -109,7 +108,7 @@ def ask_question(history, chat_input, model, check_db, check_groq, check_mistral
             yield history
 
 def create_interface():
-    with gr.Blocks(theme=gr.themes.Monochrome()) as iface:
+    with gr.Blocks(theme=gr.themes.Soft()) as iface:
         with gr.Tab("Chatbot"):
             output = gr.Chatbot(show_label=False, type="messages")
             chat_input = gr.MultimodalTextbox(show_label=False, placeholder="Entrée votre question ici", file_count="single")

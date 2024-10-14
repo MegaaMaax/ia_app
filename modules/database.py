@@ -1,12 +1,13 @@
 import fitz
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_mistralai import MistralAIEmbeddings
+from modules.constants import MISTRAL_API_KEY
 
 def get_vector_store():
     return Chroma(
         collection_name="rag_db",
-        embedding_function=OllamaEmbeddings(model='nomic-embed-text'),
+        embedding_function=MistralAIEmbeddings(model='mistral-embed'),
         persist_directory="db_dir",
     )
 
