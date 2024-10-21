@@ -5,6 +5,7 @@ from modules.models import update_model_list, create_custom_model, get_client
 from modules.database import upload_database, get_vector_store
 from modules.pdf_utils import load_and_retrieve_docs_from_pdf, format_docs, encode_image_base64
 from modules.sql_query import sql_question
+from modules.power_bi import ask_bi_question
 from gradio import ChatMessage
 
 model_names = update_model_list(False, False)
@@ -187,6 +188,26 @@ def create_interface():
                 fn=sql_question,
                 inputs=[question],
                 outputs=db_output
+            )
+        
+        with gr.Tab("Power BI"):
+            with gr.Row():
+                with gr.Column():
+                    bi_question = gr.Textbox(label="Question")
+                    submit_bi_button = gr.Button("Submit")
+                with gr.Column():
+                    bi_output = gr.Textbox(label="Response")
+
+            submit_bi_button.click(
+                fn=ask_bi_question,
+                inputs=[bi_question],
+                outputs=bi_output
+            )
+
+            bi_question.submit(
+                fn=ask_bi_question,
+                inputs=[bi_question],
+                outputs=bi_output
             )
 
     return iface

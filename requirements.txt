@@ -9,3 +9,4 @@ mistralai
 langchain_groq
 langchain-mistralai
 mysql-connector-python
+azure-identity
